@@ -33,13 +33,20 @@ currency  The type of currency
 crypto_address  A crypto address of the recipient
 */
 
-var Gdax = require('gdax');
-var YAML = require('yamljs');
+const Gdax = require('gdax');
+const YAML = require('yamljs');
+const rateLimiter = require('rateLimiter');
 
 var creds = YAML.load('../credentials.yaml').gdax;
 
 var publicClient = new Gdax.PublicClient();
 publicClient.productID = 'ETH-BTC';
+
+const PUBLIC_RATE_LIMIT_PER_SEC = 3;
+const PRIVATE_RATE_LIMIT_PER_SEC = 5;
+
+const pubLimit = rateLimiter.makeRateLimiter(PUBLIC_RATE_LIMIT_PER_SEC);
+const privLimit = rateLimiter.makeRateLimiter(PRIVATE_RATE_LIMIT_PER_SEC);
 
 let _last = null;
 
@@ -71,8 +78,18 @@ function _setupTicker(callback, duration) {
   return interval;
 }
 
+function _sellETH() {
+
+}
+
+function _sellAllETH() {
+
+}
+
 module.exports = {
   getLast : _getLast,
+  sellETH : _sellETH,
+  sellAllETH : _sellAllETH,
   setupTicker : _setupTicker,
   getTicker : _getTicker
 };

@@ -6,11 +6,6 @@
 
 /* RATE LIMIT 6 calls per second */
 
-// POST buy ETH
-// 'btc_eth', FROM_TICKER, MONEY / FROM_TICKER
-// "currencyPair", "rate", "amount"
-// 'immediateOrCancel'
-
 /* GET BALANCE: ?? */
 
 /*
@@ -19,53 +14,10 @@ withdraw
 */
 
 const RATE_LIMIT_PER_SEC = 6;
-let callTimesInLastSecond = [];
+const limiter = require('rateLimiter').makeRateLimiter(RATE_LIMIT_PER_SEC);
+let lastValue = null;
 
-function _performRequest(requestMethod) {
-  const now = + new Date()
-  callTimesInLastSecond.push(now);
-
-
-}
-
-function _addToQueue(requestMethod) {
-  
-}
-
-function _runQueued() {
-  // for() {
-  //   _performRequest(requestMethod);
-  // }
-}
-
-/*
-Rate limits all requests.
-If rate exceeded, item fails to go through.
-
-shouldQueue: true means go through when you can.
-*/
-function _rateLimit(requestMethod, shouldQueue) {
-  const now = + new Date();
-  let numCalls = callTimesInLastSecond.length;
-
-  const numToDelete = 0;
-  while (numToDelete < numCalls &&
-          callTimesInLastSecond[numToDelete] < (now - 1000)) {
-    numToDelete++;
-  }
-
-  callTimesInLastSecond.splice(0, numToDelete);
-
-  numCalls = callTimesInLastSecond.length;
-  if (numCalls < RATE_LIMIT_PER_SEC) {
-    // Make the request
-    _performRequest(requestMethod);
-  } else if (shouldQueue) {
-    _addToQueue(requestMethod);
-  }
-
-  _runQueued();
-}
+// limiter.rateLimit(apiCall);
 
 function _initWithHandler(handler) {
   var autobahn = require('autobahn');
@@ -78,7 +30,8 @@ function _initWithHandler(handler) {
   connection.onopen = function (session) {
     function tickerEvent (args, kwargs) {
       if (args[0] === 'BTC_ETH') {
-        handler(args[1]);
+        lastValue = args[1];
+        handler(lastValue);
       }
     }
     session.subscribe('ticker', tickerEvent);
@@ -91,7 +44,44 @@ function _initWithHandler(handler) {
   connection.open();
 }
 
+function _getLast() {
+  return lastValue;
+}
+
+/* POST buy ETH
+'btc_eth', FROM_TICKER, MONEY / FROM_TICKER
+"currencyPair", "rate", "amount"
+'immediateOrCancel' */
+function _buyETH(rate, amount) {
+  const params = {
+    'currencyPair' : 'btc_eth',
+    'rate' : '' + rate,
+    'amount' : '' + amount,
+    'immediateOrCancel' : true
+  };
+
+  limiter.rateLimit(function () {
+    // POST REQUEST
+  });
+}
+
+function _getBTCBalance(callback) {
+  limiter.rateLimit(function () {
+    
+  });
+}
+
+function _buyAllETH(rate) {
+  // Get BTC balance
+  _getBTCBalance(function (balance) {
+    // Buy all BTC worth of ETH
+    _buyETH(rate, balance / rate);
+  });
+}
+
 module.exports = {
   initWithHandler : _initWithHandler,
   buyETH : _buyETH,
+  buyAllETH : _buyAllETH,
+  getLast : _getLast
 }
