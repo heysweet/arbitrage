@@ -4,7 +4,6 @@
 
 // DAILY LIMIT CASH WITHDRAW 10000 USD -> 250000??
 
-
 // GET /accounts
 // [{'currency':'BTC', ... {'available':  '1.000'}}, ...]
 
@@ -33,103 +32,149 @@ currency  The type of currency
 crypto_address  A crypto address of the recipient
 */
 
-const Gdax = require('gdax');
-const YAML = require('yamljs');
-const rateLimiter = require('rateLimiter');
+(function () {
 
-var creds = YAML.load('../credentials.yaml').gdax;
+  const crypto = require('cryptoUtil.js');
+  const request = require('request');
+  const Gdax = require('gdax');
+  const YAML = require('yamljs');
+  const rateLimiter = require('rateLimiter');
 
-var publicClient = new Gdax.PublicClient();
-publicClient.productID = 'ETH-BTC';
+  const creds = YAML.load('../credentials.yaml').gdax;
 
-const PUBLIC_RATE_LIMIT_PER_SEC = 3;
-const PRIVATE_RATE_LIMIT_PER_SEC = 5;
+  const publicClient = new Gdax.PublicClient();
+  publicClient.productID = 'ETH-BTC';
 
-const pubLimit = rateLimiter.makeRateLimiter(PUBLIC_RATE_LIMIT_PER_SEC);
-const privLimit = rateLimiter.makeRateLimiter(PRIVATE_RATE_LIMIT_PER_SEC);
+  const apiURI = 'https://api.gdax.com';
+   
+  // Defaults to https://api.gdax.com if apiURI omitted 
+  const authedClient = new Gdax.AuthenticatedClient(
+    creds.key, creds.secret, creds.passphrase, apiURI);
+  authedClient.productID = 'ETH-BTC';
 
-let _last = null;
+  const PUBLIC_RATE_LIMIT_PER_SEC = 3;
+  const PRIVATE_RATE_LIMIT_PER_SEC = 5;
 
-function _getTicker(callback) {
-  function ticker(err, response, data) {
-    if (err) {
-      return callback && callback(null);
+  const pubLimit = rateLimiter.makeRateLimiter(PUBLIC_RATE_LIMIT_PER_SEC);
+  const privLimit = rateLimiter.makeRateLimiter(PRIVATE_RATE_LIMIT_PER_SEC);
+
+  let _last = null;
+
+  /*function _DO_POST() {
+    nonce++;
+    params.nonce = nonce;
+
+    // Build the post string from an object
+    const postData = querystring.stringify(params);
+    const sign = crypto.sign(postData, creds.secret);
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // set the parameter for the request message
+    var req = {
+      method: 'POST',
+      path: '/v2/exchange-rates?currency=USD',
+      body: ''
+    };
+
+    var options = {
+      baseUrl: 'https://api.gdax.com',
+      url: req.path,
+      method: req.method,
+      body: postData,
+      headers: {
+        'CB-ACCESS-KEY' : creds.key,
+        'CB-ACCESS-SIGN' : sign,
+        'CB-ACCESS-TIMESTAMP' : timestamp,
+        'CB-ACCESS-PASSPHRASE' : creds.passphrase
+      }
+    };
+
+    function callback(error, response, body) {
+      if (!error && response.statusCode == 200) {
+        var info = JSON.parse(body);
+
+        console.log(info);
+        onComplete(body);
+      }
     }
 
-    _last = data.price;
-    callback && callback(_last);
+    request.post(options, callback);
+
+
+
+
+// CB-ACCESS-KEY The api key as a string.
+// CB-ACCESS-SIGN The base64-encoded signature (see Signing a Message).
+// CB-ACCESS-TIMESTAMP A timestamp for your request.
+// CB-ACCESS-PASSPHRASE The passphrase you specified when creating the API key.
+
+    request('http://www.google.com', function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            console.log(body) // Print the google web page.
+         }
+    })
+
+    request.post('http://service.com/upload', {form:{key:'value'}})
+  }*/
+
+  function _getTicker(callback) {
+    function ticker(err, response, data) {
+      if (err) {
+        return callback && callback(null);
+      }
+
+      _last = data.price;
+      callback && callback(_last);
+    }
+
+    publicClient.getProductTicker(ticker);
   }
 
-  publicClient.getProductTicker(ticker);
-}
+  function _getLast() {
+    return _last;
+  }
 
-function _getLast() {
-  return _last;
-}
+  function _setupTicker(callback, duration) {
+    let interval = setInterval(
+      function () {
+        _getTicker(callback);
+        callback(_getLast());
+      },
+      duration
+    );
+    return interval;
+  }
 
-function _setupTicker(callback, duration) {
-  let interval = setInterval(
-    function () {
-      _getTicker();
-      callback(_getLast());
-    },
-    duration
-  );
-  return interval;
-}
+  function _sellETH() {
+    
+  }
 
-function _sellETH() {
+  function _sellAllETH() {
 
-}
+  }
 
-function _sellAllETH() {
+  function _sendAllBTCto(address) {
 
-}
+  }
 
-module.exports = {
-  getLast : _getLast,
-  sellETH : _sellETH,
-  sellAllETH : _sellAllETH,
-  setupTicker : _setupTicker,
-  getTicker : _getTicker
-};
+  module.exports = {
+    getLast : _getLast,
+    sellETH : _sellETH,
+    sellAllETH : _sellAllETH,
+    sendAllBTCto : _sendAllBTCto,
+    setupTicker : _setupTicker,
+    getTicker : _getTicker
+  };
 
-// '/products/BTC-ETH/ticker'
-// {
-//   "trade_id": 4729088,
-//   "price": "333.99",
-//   "size": "0.193",
-//   "bid": "333.98",
-//   "ask": "333.99",
-//   "volume": "5957.11914015",
-//   "time": "2015-11-14T20:46:03.511254Z"
-// }
+  // '/products/BTC-ETH/ticker'
+  // {
+  //   "trade_id": 4729088,
+  //   "price": "333.99",
+  //   "size": "0.193",
+  //   "bid": "333.98",
+  //   "ask": "333.99",
+  //   "volume": "5957.11914015",
+  //   "time": "2015-11-14T20:46:03.511254Z"
+  // }
 
-
-// var autobahn = require('autobahn');
-// var wsuri = "wss://ws-feed.gdax.com/";
-// var connection = new autobahn.Connection({
-//   url: wsuri,
-//   realm: "realm1"
-// });
- 
-// connection.onopen = function (session) {
-//   function marketEvent (args,kwargs) {
-//     console.log(args);
-//   }
-//   function tickerEvent (args,kwargs) {
-//     console.log(args[0]);
-//   }
-//   function trollboxEvent (args,kwargs) {
-//     console.log(args);
-//   }
-//   // session.subscribe('BTC_ETH', marketEvent);
-//   session.subscribe('ticker', tickerEvent);
-//   // session.subscribe('trollbox', trollboxEvent);
-// }
- 
-// connection.onclose = function () {
-//   console.log("Websocket connection closed");
-// }
-                       
-// connection.open();
+})();
