@@ -4,6 +4,10 @@
 
 // DAILY LIMIT CASH WITHDRAW 10000 USD -> 250000??
 
+
+// GET /accounts
+// [{'currency':'BTC', ... {'available':  '1.000'}}, ...]
+
 // RATE LIMIT: NO MORE THAN 3 requests per second
 
 // RATE LIMIT: PRIVATE ENDPOINT ARE 5 requests per second
