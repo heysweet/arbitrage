@@ -1,0 +1,26 @@
+{
+  "name": "arbitrage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "polo.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://heysweet@github.com/heysweet/arbitrage.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/heysweet/arbitrage/issues"
+  },
+  "homepage": "https://github.com/heysweet/arbitrage#readme",
+  "dependencies": {
+    "autobahn": "^17.5.2",
+    "gdax": "^0.4.2",
+    "ws": "^3.0.0",
+    "yamljs": "^0.2.10"
+  }
+}
