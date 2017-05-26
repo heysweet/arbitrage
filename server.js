@@ -4,6 +4,8 @@ const YAML = require('yamljs');
 
 const creds = YAML.load('../credentials.yaml');
 
+// TODO: GDAX wallet Address changes
+// TODO: Confirm POLO does not
 let poloBTCAddress = creds.polo.TODO_BTC_ADDRESS;
 let gdaxETHAddress = creds.gdax.TODO_ETH_ADDRESS;
 
