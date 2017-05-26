@@ -6,11 +6,10 @@
 
 (function () {
 
-  const crypto = require('cryptoUtil.js');
-  const request = require('request');
+  const crypto = require('./cryptoUtil.js');
   const Gdax = require('gdax');
   const YAML = require('yamljs');
-  const rateLimiter = require('rateLimiter');
+  const rateLimiter = require('./rateLimiter.js');
 
   const creds = YAML.load('../credentials.yaml').gdax;
 
@@ -113,7 +112,7 @@
 
     privLimit.rateLimit(function () {
       authedClient.getAccounts(function (accounts) {
-        for (var i = 0; i < accounts.length) {
+        for (var i = 0; i < accounts.length; i++) {
           let acct = accounts[i];
 
           if (acct.currency === 'ETH') {

@@ -1,5 +1,5 @@
 (function () {
-  const Queue = require('queue.js');
+  const Queue = require('./queue.js');
 
   function _makeRateLimiter(RATE_LIMIT_PER_SEC) {
     const queue = new Queue();

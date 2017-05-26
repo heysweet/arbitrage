@@ -12,7 +12,7 @@
 
   /* RATE LIMIT 6 calls per second */
   const RATE_LIMIT_PER_SEC = 6;
-  const limiter = require('rateLimiter').makeRateLimiter(RATE_LIMIT_PER_SEC);
+  const limiter = require('./rateLimiter.js').makeRateLimiter(RATE_LIMIT_PER_SEC);
 
   let lastValue = null;
   let nonce = 0;

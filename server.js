@@ -1,11 +1,13 @@
-var gdax = require('./gdax.js');
-var polo = require('./polo.js');
+const gdax = require('./gdax.js');
+const polo = require('./polo.js');
+const YAML = require('yamljs');
 
-gdax.setupTicker(function() {}, 201);
+const creds = YAML.load('../credentials.yaml');
 
-const poloBTCAddress;
-const gdaxETHAddress;
+let poloBTCAddress = creds.polo.TODO_BTC_ADDRESS;
+let gdaxETHAddress = creds.gdax.TODO_ETH_ADDRESS;
 
+// Minimum amounts of coin to be exchanged
 const MIN_AMOUNT_BTC = 0.0003;
 const MIN_AMOUNT_ETH = 0.003;
 
@@ -50,10 +52,13 @@ function _handle_POLO(btc_eth_gdax, btc_eth_polo) {
 
 // Called every price update from polo
 polo.initWithHandler(function (btc_eth_polo) {
-  const btc_eth_gdax = gdax.getLast();
+  // Only execute logic on incoming gdax data
+  // since it is less frequent
 
-  _handle_GDAX(btc_eth_gdax, btc_eth_polo);
-  _handle_POLO(btc_eth_gdax, btc_eth_polo);
+  // const btc_eth_gdax = gdax.getLast();
+
+  // _handle_GDAX(btc_eth_gdax, btc_eth_polo);
+  // _handle_POLO(btc_eth_gdax, btc_eth_polo);
 });
 
 // Called every price update from gdax
@@ -62,4 +67,4 @@ gdax.setupTicker(function (btc_eth_gdax) {
 
   _handle_POLO(btc_eth_gdax, btc_eth_polo);
   _handle_GDAX(btc_eth_gdax, btc_eth_polo);
-}, 201);
+}, 401);
