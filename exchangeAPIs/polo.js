@@ -6,13 +6,13 @@
 
 (function () {
 
-  const crypto = require('cryptoUtil.js');
+  const crypto = require('../utils/cryptoUtil.js');
   const http = require('http');
   const request = require('request');
 
   /* RATE LIMIT 6 calls per second */
   const RATE_LIMIT_PER_SEC = 6;
-  const limiter = require('./rateLimiter.js').makeRateLimiter(RATE_LIMIT_PER_SEC);
+  const limiter = require('../utils/rateLimiter.js').makeRateLimiter(RATE_LIMIT_PER_SEC);
 
   let lastValue = null;
   let nonce = 0;

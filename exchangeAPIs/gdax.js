@@ -6,10 +6,10 @@
 
 (function () {
 
-  const crypto = require('./cryptoUtil.js');
+  const crypto = require('../utils/cryptoUtil.js');
   const Gdax = require('gdax');
   const YAML = require('yamljs');
-  const rateLimiter = require('./rateLimiter.js');
+  const rateLimiter = require('../utils/rateLimiter.js');
 
   const creds = YAML.load('../credentials.yaml').gdax;
 

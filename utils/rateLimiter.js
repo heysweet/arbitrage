@@ -31,7 +31,7 @@
     Rate limits all requests.
     If rate exceeded, item fails to go through.
 
-    shouldQueue: true means go through when you can.
+    shouldQueue (optional): true means go through when you can.
     */
     function _rateLimit(requestMethod, shouldQueue) {
       if (numCallTimesInLastSeconds < RATE_LIMIT_PER_SEC) {

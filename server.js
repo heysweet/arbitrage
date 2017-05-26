@@ -1,13 +1,13 @@
-const gdax = require('./gdax.js');
-const polo = require('./polo.js');
+const gdax = require('./exchangeAPIs/gdax.js');
+const polo = require('./exchangeAPIs/polo.js');
 const YAML = require('yamljs');
 
-const creds = YAML.load('../credentials.yaml');
+// const creds = YAML.load('../credentials.yaml');
 
 // TODO: GDAX wallet Address changes
 // TODO: Confirm POLO does not
-let poloBTCAddress = creds.polo.TODO_BTC_ADDRESS;
-let gdaxETHAddress = creds.gdax.TODO_ETH_ADDRESS;
+let poloBTCAddress = '';//creds.polo.TODO_BTC_ADDRESS;
+let gdaxETHAddress = '';//creds.gdax.TODO_ETH_ADDRESS;
 
 // Minimum amounts of coin to be exchanged
 const MIN_AMOUNT_BTC = 0.0003;
