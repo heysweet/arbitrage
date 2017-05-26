@@ -4,33 +4,11 @@
 
 // DAILY LIMIT CASH WITHDRAW 10000 USD -> 250000??
 
-// GET /accounts
-// [{'currency':'BTC', ... {'available':  '1.000'}}, ...]
-
-// RATE LIMIT: NO MORE THAN 3 requests per second
-
-// RATE LIMIT: PRIVATE ENDPOINT ARE 5 requests per second
-
 // IF ((GDAX * 104%) < POLO number)
 // SELL ETH
 // cancel_after (0.5 secs, which needs to be in mins)
 // type: market
 // funds : total ETH
-
-/* GET BALANCE: ?? */
-
-/* WITHDRAW
-HTTP REQUEST
-
-POST /withdrawals/crypto
-
-PARAMETERS
-
-Param Description
-amount  The amount to withdraw
-currency  The type of currency
-crypto_address  A crypto address of the recipient
-*/
 
 (function () {
 
@@ -42,6 +20,17 @@ crypto_address  A crypto address of the recipient
 
   const creds = YAML.load('../credentials.yaml').gdax;
 
+  const balances = {
+    'ETH' : {
+      'amount' : 0,
+      'hasChanged' : true
+    },
+    'BTC' : {
+      'amount' : 0,
+      'hasChanged' : true
+    }
+  };
+
   const publicClient = new Gdax.PublicClient();
   publicClient.productID = 'ETH-BTC';
 
@@ -52,7 +41,25 @@ crypto_address  A crypto address of the recipient
     creds.key, creds.secret, creds.passphrase, apiURI);
   authedClient.productID = 'ETH-BTC';
 
+  /*
+  Added sendCrypto send amount of currency to target crypto_address
+  */
+  authedClient.sendCrypto = function(params, callback) {
+    var self = this;
+    _.forEach(['amount', 'currency', 'crypto_address'], function(param) {
+      if (params[param] === undefined) {
+        throw "`opts` must include param `" + param + "`";
+      }
+    });
+    var opts = { 'body': params };
+    return authedClient.post.call(self, ['withdrawals/crypto'], opts, callback);
+  };
+
+
+  // RATE LIMIT: NO MORE THAN 3 requests per second
   const PUBLIC_RATE_LIMIT_PER_SEC = 3;
+
+  // RATE LIMIT: PRIVATE ENDPOINT ARE 5 requests per second
   const PRIVATE_RATE_LIMIT_PER_SEC = 5;
 
   const pubLimit = rateLimiter.makeRateLimiter(PUBLIC_RATE_LIMIT_PER_SEC);
@@ -60,64 +67,19 @@ crypto_address  A crypto address of the recipient
 
   let _last = null;
 
-  /*function _DO_POST() {
-    nonce++;
-    params.nonce = nonce;
-
-    // Build the post string from an object
-    const postData = querystring.stringify(params);
-    const sign = crypto.sign(postData, creds.secret);
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    // set the parameter for the request message
-    var req = {
-      method: 'POST',
-      path: '/v2/exchange-rates?currency=USD',
-      body: ''
-    };
-
-    var options = {
-      baseUrl: 'https://api.gdax.com',
-      url: req.path,
-      method: req.method,
-      body: postData,
-      headers: {
-        'CB-ACCESS-KEY' : creds.key,
-        'CB-ACCESS-SIGN' : sign,
-        'CB-ACCESS-TIMESTAMP' : timestamp,
-        'CB-ACCESS-PASSPHRASE' : creds.passphrase
-      }
-    };
-
-    function callback(error, response, body) {
-      if (!error && response.statusCode == 200) {
-        var info = JSON.parse(body);
-
-        console.log(info);
-        onComplete(body);
-      }
-    }
-
-    request.post(options, callback);
-
-
-
-
-// CB-ACCESS-KEY The api key as a string.
-// CB-ACCESS-SIGN The base64-encoded signature (see Signing a Message).
-// CB-ACCESS-TIMESTAMP A timestamp for your request.
-// CB-ACCESS-PASSPHRASE The passphrase you specified when creating the API key.
-
-    request('http://www.google.com', function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            console.log(body) // Print the google web page.
-         }
-    })
-
-    request.post('http://service.com/upload', {form:{key:'value'}})
-  }*/
-
   function _getTicker(callback) {
+
+    // '/products/BTC-ETH/ticker'
+    // {
+    //   "trade_id": 4729088,
+    //   "price": "333.99",
+    //   "size": "0.193",
+    //   "bid": "333.98",
+    //   "ask": "333.99",
+    //   "volume": "5957.11914015",
+    //   "time": "2015-11-14T20:46:03.511254Z"
+    // }
+
     function ticker(err, response, data) {
       if (err) {
         return callback && callback(null);
@@ -127,7 +89,14 @@ crypto_address  A crypto address of the recipient
       callback && callback(_last);
     }
 
-    publicClient.getProductTicker(ticker);
+    const shouldQueue = true;
+
+    pubLimit.rateLimit(
+      function () {
+        publicClient.getProductTicker(ticker);
+      },
+      shouldQueue
+    );
   }
 
   function _getLast() {
@@ -145,16 +114,92 @@ crypto_address  A crypto address of the recipient
     return interval;
   }
 
-  function _sellETH() {
-    
+  function _updateBalances(callback) {
+    const shouldQueue = true;
+
+    privLimit.rateLimit(function () {
+      authedClient.getAccounts(function (accounts) {
+        for (var i = 0; i < accounts.length) {
+          let acct = accounts[i];
+
+          if (acct.currency === 'ETH') {
+            balances.ETH.amount = acct.available;
+            balances.ETH.hasChanged = false;
+          } else if (acct.currency === 'BTC') {
+            balances.BTC.amount = acct.available;
+            balances.BTC.hasChanged = false;
+          }
+        }
+
+        callback();
+      });
+    }, shouldQueue);
   }
 
-  function _sellAllETH() {
+  function _getETHBalanceWithCache(callback) {
+    if (balances.ETH.hasChanged) {
+      // Get BTC balance
+      _updateBalances(function () {
+        callback(balances.ETH.amount);
+      });
+    } else {
+      const ethStr = balances.ETH.amount;
+      if (ethStr) {
+        callback(ethStr);
+      }
+    }
+  }
 
+  function _sellETH(rate, amount, callback) {
+    var sellParams = {
+      'price': rate,
+      'size': amount,
+      'product_id': 'ETH-BTC',
+    };
+
+    privLimit.rateLimit(function () {
+      authedClient.sell(sellParams, callback);
+    });
+  }
+
+  function _sellAllETH(rateStr) {
+    function _doSell(balanceStr) {
+      const balance = parseFloat(balanceStr);
+      const rate = parseFloat(rateStr);
+      const epsilon = 0.0000001;
+
+      if (balance > 0.001) {
+        // Buy all BTC worth of ETH
+        const amount = (balance / (rate + epsilon))
+        _sellETH(rateStr, '' + amount);
+      }
+    }
+
+    _getETHBalanceWithCache(_doSell);
   }
 
   function _sendAllBTCto(address) {
+    const shouldQueue = true;
 
+    _updateBalances(function () {
+      const params = {
+        'amount' : balances.BTC.amount,
+        'currency' : 'BTC',
+        'crypto_address' : address
+      };
+
+      privLimit.rateLimit(
+        function() {
+          authedClient.sendCrypto(
+            params, 
+            function () {
+              _updateBalances();
+            }
+          );
+        },
+        shouldQueue
+      );
+    });
   }
 
   module.exports = {
@@ -165,16 +210,5 @@ crypto_address  A crypto address of the recipient
     setupTicker : _setupTicker,
     getTicker : _getTicker
   };
-
-  // '/products/BTC-ETH/ticker'
-  // {
-  //   "trade_id": 4729088,
-  //   "price": "333.99",
-  //   "size": "0.193",
-  //   "bid": "333.98",
-  //   "ask": "333.99",
-  //   "volume": "5957.11914015",
-  //   "time": "2015-11-14T20:46:03.511254Z"
-  // }
 
 })();
