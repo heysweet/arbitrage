@@ -196,8 +196,18 @@
       );
     });
   }
+  
+  function _getBalances(callback) {
+    _getBTCBalanceWithCache(function () {
+      callback({
+        BTC : balances.BTC.amount,
+        ETH : balances.ETH.amount
+      });
+    });
+  }
 
   module.exports = {
+    getBalances : _getBalances,
     initWithHandler : _initWithHandler,
     buyETH : _buyETH,
     buyAllETH : _buyAllETH,

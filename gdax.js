@@ -4,12 +4,6 @@
 
 // DAILY LIMIT CASH WITHDRAW 10000 USD -> 250000??
 
-// IF ((GDAX * 104%) < POLO number)
-// SELL ETH
-// cancel_after (0.5 secs, which needs to be in mins)
-// type: market
-// funds : total ETH
-
 (function () {
 
   const crypto = require('cryptoUtil.js');
@@ -202,7 +196,17 @@
     });
   }
 
+  function _getBalances(callback) {
+    _getETHBalanceWithCache(function () {
+      callback({
+        BTC : balances.BTC.amount,
+        ETH : balances.ETH.amount
+      });
+    });
+  }
+
   module.exports = {
+    getBalances : _getBalances,
     getLast : _getLast,
     sellETH : _sellETH,
     sellAllETH : _sellAllETH,
