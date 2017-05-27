@@ -2,16 +2,14 @@ const gdax = require('./exchangeAPIs/gdax.js');
 const polo = require('./exchangeAPIs/polo.js');
 const YAML = require('yamljs');
 
-// const creds = YAML.load('../credentials.yaml');
+const creds = YAML.load('../credentials.yaml');
 
-// TODO: GDAX wallet Address changes
-// TODO: Confirm POLO does not
-let poloBTCAddress = '';//creds.polo.TODO_BTC_ADDRESS;
-let gdaxETHAddress = '';//creds.gdax.TODO_ETH_ADDRESS;
+let poloBTCAddress = creds.polo.address.btc;
+let gdaxETHAddress = creds.gdax.address.eth;
 
 // Minimum amounts of coin to be exchanged
-const MIN_AMOUNT_BTC = 0.0003;
-const MIN_AMOUNT_ETH = 0.003;
+const MIN_AMOUNT_BTC = 0.01;
+const MIN_AMOUNT_ETH = 1;
 
 // IF ((GDAX * 104%) < POLO number)
 // SELL ETH
@@ -20,17 +18,29 @@ const MIN_AMOUNT_ETH = 0.003;
 // funds : total ETH
 // Always SEND BTC
 function _handle_GDAX(btc_eth_gdax, btc_eth_polo) {
+  if (!btc_eth_polo) {
+    return;
+  }
+
   gdax.getBalances(function (balances) {
     const ethAmountStr = balances.ETH;
     const btcAmountStr = balances.BTC;
 
-    if (parseFloat(btc_eth_gdax * 1.04) < parseFloat(btc_eth_polo) &&
+    const gdaxRate = parseFloat(btc_eth_gdax);
+    const poloRate = parseFloat(btc_eth_polo);
+
+    if (gdaxRate * 1.04 < polo &&
         parseFloat(ethAmountStr) > MIN_AMOUNT_ETH) {
       gdax.sellAllETH(btc_eth_gdax);
+
+      console.log('Selling all ETH... on GDAX');
+      console.log('GDAX:', gdaxRate, 'POLO:', poloRate);
     }
 
     if (parseFloat(btcAmountStr) > MIN_AMOUNT_BTC) {
       gdax.sendAllBTCTo(poloBTCAddress);
+
+      console.log('Sending all BTC to POLO...');
     }
   });
 }
@@ -38,16 +48,24 @@ function _handle_GDAX(btc_eth_gdax, btc_eth_polo) {
 // Always BUY ETH
 // Always SEND ETH
 function _handle_POLO(btc_eth_gdax, btc_eth_polo) {
+  if (!btc_eth_gdax) {
+    return;
+  }
+
   polo.getBalances(function (balances) {
     const ethAmountStr = balances.ETH;
     const btcAmountStr = balances.BTC;
 
     if (parseFloat(btcAmountStr) > MIN_AMOUNT_BTC) {
       polo.buyAllETH(btc_eth_polo);
+
+      console.log('Buying all ETH on POLO...');
     }
 
     if (parseFloat(ethAmountStr) > MIN_AMOUNT_ETH) {
       polo.sendAllETHTo(gdaxETHAddress);
+
+      console.log('Sending all ETH to GDAX...');
     }
   });
 }

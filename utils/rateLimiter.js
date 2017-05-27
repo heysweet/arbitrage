@@ -7,6 +7,10 @@
     let numCallTimesInLastSeconds = 0;
 
     function _performRequest(requestMethod) {
+      if (!requestMethod) {
+        return;
+      }
+
       numCallTimesInLastSeconds++;
 
       setTimeout(function () {
@@ -34,6 +38,10 @@
     shouldQueue (optional): true means go through when you can.
     */
     function _rateLimit(requestMethod, shouldQueue) {
+      if (!requestMethod) {
+        return;
+      }
+
       if (numCallTimesInLastSeconds < RATE_LIMIT_PER_SEC) {
         _performRequest(requestMethod);
       } else if (shouldQueue) {

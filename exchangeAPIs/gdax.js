@@ -111,7 +111,7 @@
     const shouldQueue = true;
 
     privLimit.rateLimit(function () {
-      authedClient.getAccounts(function (accounts) {
+      authedClient.getAccounts(function (err, resp, accounts) {
         for (var i = 0; i < accounts.length; i++) {
           let acct = accounts[i];
 
@@ -164,7 +164,9 @@
       if (balance > 0.001) {
         // Buy all BTC worth of ETH
         const amount = (balance / (rate + epsilon))
-        _sellETH(rateStr, '' + amount);
+        _sellETH(rateStr, '' + amount, function () {
+          console.log('[GDAX] Sold all ETH!');
+        });
       }
     }
 
@@ -172,6 +174,10 @@
   }
 
   function _sendAllBTCto(address) {
+    if (!balances.ETH.hasChanged && balances.ETH.amount < 0.01) {
+      return;
+    }
+
     const shouldQueue = true;
 
     _updateBalances(function () {
@@ -186,6 +192,7 @@
           authedClient.sendCrypto(
             params, 
             function () {
+              console.log('[GDAX] Sent all BTC!');
               _updateBalances();
             }
           );

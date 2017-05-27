@@ -9,6 +9,7 @@
   const crypto = require('../utils/cryptoUtil.js');
   const http = require('http');
   const request = require('request');
+  const querystring = require('query-string');
 
   /* RATE LIMIT 6 calls per second */
   const RATE_LIMIT_PER_SEC = 6;
@@ -28,19 +29,23 @@
     }
   };
 
-  const creds = YAML.load('../credentials.yaml').polo;
+  const YAML = require('yamljs');
+  const creds = YAML.load('../credentials.yaml').gdax;
 
-  function _DO_POST(params, onComplete) {
+  function _DO_POST(params, onComplete, isPublic) {
     nonce++;
     params.nonce = nonce;
 
     // Build the post string from an object
     const postData = querystring.stringify(params);
     const sign = crypto.sign(postData, creds.secret);
+    const url = isPublic ?
+      'https://poloniex.com/public' :
+      'https://poloniex.com/tradingApi';
 
     var options = {
-      url: 'https://poloniex.com/tradingApi',
-      body: postData,
+      url: url,
+      qs: postData,
       headers: {
         'Key' : creds.key,
         'Sign' : sign
@@ -49,14 +54,25 @@
 
     function callback(error, response, body) {
       if (!error && response.statusCode == 200) {
-        var info = JSON.parse(body);
+        var info = body ? JSON.parse(body) : {};
+        console.log(response.body);
 
-        console.log(info);
-        onComplete(body);
+        if (!info.error) {
+          onComplete(info);
+        }
       }
     }
 
+    console.log('[POLO]', options.qs);
     request.post(options, callback);
+  }
+
+  function _POST_PUBLIC(params, onComplete, shouldQueue) {
+    onComplete = onComplete ? onComplete : function(){};
+
+    limiter.rateLimit(function () {
+      _DO_POST(params, onComplete, true);
+    }, shouldQueue);
   }
 
   function _POST(params, onComplete, shouldQueue) {
@@ -100,7 +116,7 @@
   'btc_eth', FROM_TICKER, MONEY / FROM_TICKER
   'currencyPair', 'rate', 'amount'
   'immediateOrCancel' */
-  function _buyETH(rateStr, amountStr) {
+  function _buyETH(rateStr, amountStr, callback) {
     const params = {
       'command' : 'buy',
       'currencyPair' : 'btc_eth',
@@ -126,12 +142,12 @@
   function _updateBalances(callback) {
     const shouldQueue = true;
 
-    _POST({
+    _POST_PUBLIC({
         command : 'returnCompleteBalances'
       },
       function (data) {
-        const btcBalanceStr = data.BTC.available;
-        const ethBalanceStr = data.ETH.available;
+        const btcBalanceStr = data && data.BTC ? data.BTC.available : '0';
+        const ethBalanceStr = data && data.ETG ? data.ETH.available : '0';
 
         // BTC
         balances.BTC.amount = btcBalanceStr;
@@ -170,7 +186,9 @@
       if (balance > 0.001) {
         // Buy all BTC worth of ETH
         const amount = (balance / (rate + epsilon))
-        _buyETH(rateStr, '' + amount);
+        _buyETH(rateStr, '' + amount, function () {
+          console.log('[POLO] Bought all ETH!');
+        });
       }
     }
 
@@ -178,6 +196,10 @@
   }
 
   function _sendAllETHTo(address) {
+    if (!balances.ETH.hasChanged && balances.ETH.amount < 0.01) {
+      return;
+    }
+
     const shouldQueue = true;
 
     _updateBalances(function () {
@@ -190,6 +212,7 @@
           'address' : address
         }, 
         function() {
+          console.log('[POLO] Sent all ETH!');
           _updateBalances();
         },
         shouldQueue
