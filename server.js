@@ -13,16 +13,31 @@ const MIN_AMOUNT_ETH = 1;
 
 let widestSpread = -10;
 let widestSpreadInInterval = -10;
-const reportIntervalSeconds = 15 * 60;
+let widestNegSpread = 10;
+let widestNegSpreadInInterval = 10;
+let lastSpread = -10;
+
+let totalMinutesRun = 0;
+
+const reportIntervalSeconds = 2 * 60;
 const reportIntervalMinutes = reportIntervalSeconds / 60;
 
 setInterval(
   function () {
-    console.log('Widest so far:', widestSpread);
+    totalMinutesRun += reportIntervalMinutes;
+
+    console.log('--------( ' + totalMinutesRun + ' mins )-------');
+    console.log('Last spread:', lastSpread);
     console.log(
-      'Widest in interval (' + reportIntervalMinutes + ' mins):',
+      'Widest + in interval (' + reportIntervalMinutes + ' mins):',
       widestSpreadInInterval
     );
+    console.log(
+      'Widest - in interval (' + reportIntervalMinutes + ' mins):',
+      widestNegSpreadInInterval
+    );
+    console.log('Widest + so far:', widestSpread);
+    console.log('Widest - so far:', widestNegSpread);
 
     widestSpreadInInterval = -10;
   }, 
@@ -62,8 +77,11 @@ function _handle_GDAX(btc_eth_gdax, btc_eth_polo) {
       console.log('Sending all BTC to POLO...');
     }
 
+    lastSpread = spread;
     widestSpreadInInterval = Math.max(widestSpreadInInterval, spread);
+    widestNegSpreadInInterval = Math.min(widestNegSpreadInInterval, spread);
     widestSpread = Math.max(widestSpread, spread);
+    widestNegSpread = Math.min(widestNegSpread, spread);
   });
 }
 
