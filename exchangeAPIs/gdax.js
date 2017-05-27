@@ -125,6 +125,7 @@
         }
 
         callback();
+        console.log('[GDAX] ETH:', balances.ETH.amount);
       });
     }, shouldQueue);
   }

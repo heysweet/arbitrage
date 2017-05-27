@@ -11,6 +11,24 @@ let gdaxETHAddress = creds.gdax.address.eth;
 const MIN_AMOUNT_BTC = 0.01;
 const MIN_AMOUNT_ETH = 1;
 
+let widestSpread = -10;
+let widestSpreadInInterval = -10;
+const reportIntervalSeconds = 15 * 60;
+const reportIntervalMinutes = reportIntervalSeconds / 60;
+
+setInterval(
+  function () {
+    console.log('Widest so far:', widestSpread);
+    console.log(
+      'Widest in interval (' + reportIntervalMinutes + ' mins):',
+      widestSpreadInInterval
+    );
+
+    widestSpreadInInterval = -10;
+  }, 
+  reportIntervalSeconds * 1000
+);
+
 // IF ((GDAX * 104%) < POLO number)
 // SELL ETH
 // cancel_after (0.5 secs, which needs to be in mins)
@@ -29,8 +47,9 @@ function _handle_GDAX(btc_eth_gdax, btc_eth_polo) {
     const gdaxRate = parseFloat(btc_eth_gdax);
     const poloRate = parseFloat(btc_eth_polo);
 
-    if (gdaxRate * 1.04 < polo &&
-        parseFloat(ethAmountStr) > MIN_AMOUNT_ETH) {
+    const spread = (poloRate - gdaxRate) / gdaxRate;
+
+    if (spread >= 0.0388 && parseFloat(ethAmountStr) > MIN_AMOUNT_ETH) {
       gdax.sellAllETH(btc_eth_gdax);
 
       console.log('Selling all ETH... on GDAX');
@@ -42,6 +61,9 @@ function _handle_GDAX(btc_eth_gdax, btc_eth_polo) {
 
       console.log('Sending all BTC to POLO...');
     }
+
+    widestSpreadInInterval = Math.max(widestSpreadInInterval, spread);
+    widestSpread = Math.max(widestSpread, spread);
   });
 }
 
